@@ -4,8 +4,6 @@
 
 namespace JWEngine
 {
-	static constexpr size_t not_specified = UINT32_MAX;
-	
 	template <typename T>
 	class JWDynamicArray
 	{
@@ -23,94 +21,126 @@ namespace JWEngine
 			DeleteArray();
 		};
 
-		auto size() const->size_t
+		// Get the (const) size of the dynamic array.
+		auto size() const->const size_t
 		{
 			return m_Size;
 		}
 
-		auto capacity() const->size_t
+		// Get the (const) capacity of the dynamic array.
+		auto capacity() const->const size_t
 		{
 			return m_Capacity;
 		}
 
-		// Empty all the elements, and reset the capacity
+		// Empty all the elements,
+		// and reset the capacity to the minimum value (2).
 		void clear()
 		{
+			// The size needs to be set 0,
+			// because we will delete all the data in the dynamic array.
 			m_Size = 0;
+
+			// Call DeleteArray() to later NewArray() with the minimum size (2).
 			DeleteArray();
 
+			/*
+			// NewArray() with the minimum size (2).
 			NewArray(2);
+			*/
 		}
 
-		// Empty all the elements, but the capacity remains as the same
+		// Empty all the elements,
+		// but the capacity remains as the same as before.
 		void empty()
 		{
+			// The size needs to be set 0,
+			// because we will delete all the data in the dynamic array.
 			m_Size = 0;
 
+			// We must fill the memory space of the dynamic array with 0,
+			// but only when it has already been allocated,
+			// because, otherwise m_pData is nullptr,
+			// and an error will be occured when we try to use a null pointer variable.
 			if (m_pData)
 			{
 				memset(m_pData, 0, sizeof(T) * m_Capacity);
 			}
 		}
 
-		// Push new value to the back of the dynamic array
-		void push_back(T value)
+		// Add a new element to the back(tail) of the dynamic array.
+		void push_back(T element)
 		{
 			if (!m_Capacity)
 			{
-				// Dynamic array not allocated yet
-				// allocate for the first time the dynamic array with capacity = 2
+				// Memory space for our dynamic array is not allocated yet,
+				// allocate memory space with the minimum capacity (2).
 				NewArray(2);
 			}
 
+			// Since push_back() adds a new element to the dynamic array,
+			// its size must be increased.
 			m_Size++;
+
 			if (m_Size >= m_Capacity)
 			{
-				// First, set value
-				m_pData[m_Size - 1] = value;
+				// If the size meets the capacity,
+				// we need to double the capacity of the dynamic array.
 
-				// Dynamic array needs to be expanded
-				// now save the current dynamic array's data
+				// First, add this new element.
+				m_pData[m_Size - 1] = element;
+
+				// Now, save the current dynamic array's data in a temporary dynamic array.
 				size_t temp_capacity = m_Capacity;
-				T* temp_p_data = nullptr;
-				temp_p_data = new T[temp_capacity];
+				T* temp_p_data = new T[temp_capacity];
 				memcpy(temp_p_data, m_pData, temp_capacity * sizeof(T));
 
-				// Delete the current dynamic array
+				// Delete the current dynamic array with all its data.
 				DeleteArray();
 
-				// Multiply the capacity by 2 for the expansion
-				// of the newly allocated dynamic array
+				// Allocate memory space for our new dynamic array with doubled capacity.
 				NewArray(temp_capacity * 2);
 
-				// Copy the saved data
+				// Copy the saved data from the temprorary dynamic array
+				// to our dynamic array
 				memcpy(m_pData, temp_p_data, temp_capacity * sizeof(T));
 				delete[] temp_p_data;
+				temp_p_data = nullptr;
 			}
 			else
 			{
-				// No need to expand the dynamic array, just set value
-				m_pData[m_Size - 1] = value;
+				// The size is less than the capacity,
+				// so no need to expand the capacity of the dynamic array,
+				// and we just need to add this new element.
+				m_pData[m_Size - 1] = element;
 			}
 		}
 
-		// Pop(delete) the last element of the dynamic array
-		// this doesn't change the capacity of the dynamic array
+		// Delete the last element of the dynamic array
+		// this doesn't change the capacity of the dynamic array.
 		void pop_back()
 		{
+			// We must delete the last element,
+			// but only when out dynamic array has any data.
 			if (m_Size)
 			{
+				// Since we delete the last element,
+				// the size must be decreased.
 				m_Size--;
+
+				// Fill the last element's memory space with 0
 				memset(m_pData + m_Size, 0, sizeof(T));
 			}
 		}
 
-		// operator overloading
+		// Operator overloading
 		T& operator[] (size_t index)
 		{
 			if (m_Size)
 			{
-				// Dynamic array has been allocated
+				// Memory space for the dynamic array has already been allocated.
+				// If the index value exceeds the size of the dynamic array,
+				// retrun the reference of the last element that has data.
 				if (index > m_Size - 1)
 				{
 					index = m_Size - 1;
@@ -120,14 +150,18 @@ namespace JWEngine
 			}
 			else
 			{
-				// Dynamic array not allocated yet
-				return nullptr;
+				// Memory space for our dynamic array is not allocated yet.
+				abort();
+				return m_pData[0];
 			}
 		}
 
 	private:
+		// PRIVATE function that allocates memory space for the dynamic array.
 		void NewArray(size_t Capacity)
 		{
+			// We must allocate memory space for our dynamic array,
+			// but only when it's not allocated before.
 			if (!m_pData)
 			{
 				m_pData = new T[Capacity];
@@ -136,8 +170,11 @@ namespace JWEngine
 			}
 		}
 
+		// PRIVATE function that frees the memory space for our dynamic array.
 		void DeleteArray()
 		{
+			// We must free the memory space,
+			// but only when it has already been allocated.
 			if (m_pData)
 			{
 				delete[] m_pData;
@@ -147,8 +184,17 @@ namespace JWEngine
 		}
 
 	private:
+		// Struct that holds data for our dynamic array.
 		T* m_pData;
-		size_t m_Size; // Current size of the array elements that have data
-		size_t m_Capacity; // Current maximum size of the array
+
+		// Current size of the dynamic array,
+		// which represents the number of the elements.
+		size_t m_Size;
+
+		// Current maximum size of the array.
+		// Though it's a maximum size, we use adjective 'current',
+		// because this is a dynamic array,
+		// and a dynamic array must be able to change its capacity.
+		size_t m_Capacity;
 	};
 };
