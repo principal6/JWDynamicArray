@@ -43,11 +43,6 @@ namespace JWEngine
 
 			// Call DeleteArray() to later NewArray() with the minimum size (2).
 			DeleteArray();
-
-			/*
-			// NewArray() with the minimum size (2).
-			NewArray(2);
-			*/
 		}
 
 		// Empty all the elements,
